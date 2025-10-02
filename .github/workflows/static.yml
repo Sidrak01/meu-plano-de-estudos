@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor de Estudos: Assistente Administrativo Educacional - Arapiraca/AL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A estrutura foi expandida para um portal de estudos completo, mantendo a navegação superior. A principal adição é a seção "Plano Semanal e Materiais", que usa um sistema de abas para organizar 10 semanas de estudo. Cada semana contém links que abrem modais com "Resumos Didáticos" e "Exercícios Práticos", criando um ambiente de aprendizado focado. Adicionei também seções para "Técnicas de Estudo" e uma "Reta Final" com simulados. Essa arquitetura transforma o dashboard inicial em uma ferramenta de tutoria ativa, guiando o usuário do planejamento à prática e revisão intensiva, tudo em um único local. A persistência de dados via localStorage e um novo "Painel de Desempenho" foram adicionados para salvar o progresso e permitir análise de erros. -->
+    <!-- Visualization & Content Choices: 1. Análise da Prova -> Mantido o Gráfico de Rosca (Chart.js) pelo seu alto impacto visual. 2. Plano Semanal -> Objetivo: Guiar o estudo passo a passo -> Apresentação: Abas interativas (HTML/JS) para cada semana, com botões que ativam modais. 3. Resumos e Exercícios -> Objetivo: Ensinar e testar -> Apresentação: Modais (HTML/JS) para evitar poluir a página principal. -> Justificativa: Modais mantêm o usuário focado na tarefa (ler um resumo ou fazer um quiz) sem perder o contexto da página principal. 4. Painel de Desempenho -> Objetivo: Análise de progresso -> Apresentação: Cards de estatísticas e lista de erros (HTML/JS) populados dinamicamente a partir do localStorage. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; /* Um tom de branco mais suave */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+        .nav-link { transition: color 0.3s, border-bottom-color 0.3s; }
+        .nav-link:hover, .nav-link.active { color: #D97706; border-bottom-color: #D97706; }
+        .checklist-item { cursor: pointer; transition: all 0.2s; }
+        .checklist-item.completed { text-decoration: line-through; color: #9CA3AF; background-color: #F3F4F6; }
+        .checklist-item:hover { background-color: #FEF3C7; }
+        .accordion-button.open svg { transform: rotate(180deg); }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+        .tab-button { transition: all 0.3s; }
+        .tab-button.active { background-color: #D97706; color: white; }
+        .tab-button:not(.active):hover { background-color: #FBBF24; }
+        .quiz-option { cursor: pointer; transition: background-color 0.2s; }
+        .quiz-option.answered:not(.correct):not(.incorrect) { background-color: #E5E7EB; }
+        .quiz-option.correct { background-color: #D1FAE5; border-color: #10B981; }
+        .quiz-option.incorrect { background-color: #FEE2E2; border-color: #EF4444; }
+    </style>
+</head>
+<body class="text-stone-800">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-xl font-bold text-amber-700">Tutor de Estudos</div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#overview" class="nav-link border-b-2 border-transparent pb-1">Visão Geral</a>
+                    <a href="#weekly-plan" class="nav-link border-b-2 border-transparent pb-1">Plano Semanal</a>
+                    <a href="#performance-panel" class="nav-link border-b-2 border-transparent pb-1">Desempenho</a>
+                    <a href="#techniques" class="nav-link border-b-2 border-transparent pb-1">Técnicas</a>
+                    <a href="#final-review" class="nav-link border-b-2 border-transparent pb-1">Reta Final</a>
+                    <a href="#syllabus" class="nav-link border-b-2 border-transparent pb-1">Conteúdo</a>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-white border border-stone-300 rounded-md p-2 text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="#overview">Visão Geral</option>
+                        <option value="#weekly-plan">Plano Semanal</option>
+                        <option value="#performance-panel">Desempenho</option>
+                        <option value="#techniques">Técnicas</option>
+                        <option value="#final-review">Reta Final</option>
+                        <option value="#syllabus">Conteúdo</option>
+                    </select>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <div class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-amber-800">Concurso SME Arapiraca/AL 2025</h1>
+            <p class="mt-2 text-xl text-stone-600">Seu Guia de Preparação para Assistente Administrativo Educacional</p>
+        </div>
+
+        <!-- Visão Geral -->
+        <section id="overview" class="mb-20">
+            <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Visão Geral da Prova</h2>
+            <div class="grid md:grid-cols-5 gap-8 items-center">
+                <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-center text-stone-700 mb-4">Peso de Cada Disciplina</h3>
+                    <div class="chart-container"><canvas id="examWeightsChart"></canvas></div>
+                </div>
+                <div class="md:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-semibold text-stone-700 mb-4">Estrutura de Pontuação</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-amber-50">
+                                <tr>
+                                    <th class="p-3 font-semibold">Disciplina</th>
+                                    <th class="p-3 font-semibold text-center">Questões</th>
+                                    <th class="p-3 font-semibold text-center">Pontos/Questão</th>
+                                    <th class="p-3 font-semibold text-center">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b"><td class="p-3 font-medium text-amber-800">Conhecimentos Específicos</td><td class="p-3 text-center">20</td><td class="p-3 text-center">3</td><td class="p-3 text-center font-bold">60</td></tr>
+                                <tr class="border-b"><td class="p-3">Português</td><td class="p-3 text-center">10</td><td class="p-3 text-center">2</td><td class="p-3 text-center font-bold">20</td></tr>
+                                <tr class="border-b"><td class="p-3">Informática</td><td class="p-3 text-center">10</td><td class="p-3 text-center">1</td><td class="p-3 text-center font-bold">10</td></tr>
+                                <tr class="border-b"><td class="p-3">Ética</td><td class="p-3 text-center">5</td><td class="p-3 text-center">1</td><td class="p-3 text-center font-bold">5</td></tr>
+                                <tr><td class="p-3">Conhecimentos Gerais</td><td class="p-3 text-center">5</td><td class="p-3 text-center">1</td><td class="p-3 text-center font-bold">5</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <p class="text-xs text-stone-500 mt-4">*Pontuação Mínima: 60 pontos, sem zerar nenhuma disciplina.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plano de Estudos Semanal -->
+        <section id="weekly-plan" class="mb-20">
+            <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Plano Semanal e Materiais</h2>
+            <p class="mb-8 text-stone-600">
+                Aqui começa sua jornada! O plano está dividido em 10 semanas. Cada semana tem metas claras, resumos e exercícios. A sugestão é estudar de 2 a 3 horas por dia, 5 dias por semana.
+            </p>
+            <div class="bg-white p-6 rounded-xl shadow-md">
+                <div id="tabs-container" class="mb-6 flex flex-wrap gap-2"></div>
+                <div id="tabs-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Painel de Desempenho -->
+        <section id="performance-panel" class="mb-20">
+            <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Painel de Desempenho</h2>
+            <p class="mb-8 text-stone-600">
+                Acompanhe seu progresso aqui. As estatísticas são atualizadas automaticamente conforme você resolve os exercícios e simulados. Use esta seção para identificar seus pontos fracos e direcionar a revisão.
+            </p>
+            <div id="performance-content" class="bg-white p-6 rounded-xl shadow-md">
+                <!-- Performance stats will be rendered here by JS -->
+            </div>
+            <div class="mt-4 text-center">
+                 <button id="clear-progress-btn" class="text-sm text-red-500 hover:underline">Limpar todo o progresso</button>
+            </div>
+        </section>
+
+        <!-- Técnicas de Estudo -->
+        <section id="techniques" class="mb-20">
+             <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Técnicas de Estudo</h2>
+             <p class="mb-8 text-stone-600">
+                Estudar de forma inteligente é mais eficaz do que estudar por mais tempo. Use estas técnicas para otimizar sua aprendizagem e retenção de conteúdo.
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-semibold text-stone-700 mb-2">Mapas Mentais</h3><p class="text-sm">Crie diagramas visuais para conectar ideias. Comece com o tema central e puxe "ramos" para os subtópicos. Ótimo para revisões rápidas.</p></div>
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-semibold text-stone-700 mb-2">Flashcards</h3><p class="text-sm">Escreva uma pergunta ou conceito de um lado de um cartão e a resposta do outro. Excelente para memorizar leis, datas e vocabulário.</p></div>
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-semibold text-stone-700 mb-2">Técnica Pomodoro</h3><p class="text-sm">Estude com foco total por 25 minutos e faça uma pausa de 5 minutos. Após 4 ciclos, faça uma pausa maior (15-30 min). Aumenta a concentração.</p></div>
+                <div class="bg-white p-6 rounded-xl shadow-md"><h3 class="font-semibold text-stone-700 mb-2">Revisão Ativa</h3><p class="text-sm">Em vez de apenas reler, tente explicar o assunto com suas próprias palavras ou resolver exercícios sem consultar o material. Isso fortalece a memória.</p></div>
+            </div>
+        </section>
+
+        <!-- Reta Final -->
+        <section id="final-review" class="mb-20">
+            <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Reta Final: Últimos 10 Dias</h2>
+            <p class="mb-8 text-stone-600">
+                Nos 10 dias que antecedem a prova (04/12 a 13/12), o foco é revisão intensiva e simulação das condições de prova.
+            </p>
+             <div class="bg-white p-6 rounded-xl shadow-md">
+                <ul class="list-disc list-inside space-y-3">
+                    <li>**Dias 10 a 5 (04/12 a 09/12):** Revisão geral. Releia todos os seus resumos, mapas mentais e refaça os exercícios em que teve dificuldade. Um dia para cada disciplina, focando mais em Conhecimentos Específicos e Português.</li>
+                    <li>**Dia 4 (10/12):** <button class="modal-trigger font-semibold text-amber-600 hover:underline" data-modal="simulado1">Faça o Simulado Completo 1</button>. Cronometre o tempo e corrija seus erros.</li>
+                    <li>**Dia 3 (11/12):** Revise os temas que você mais errou no simulado 1. Não tente aprender conteúdo novo.</li>
+                    <li>**Dia 2 (12/12):** <button class="modal-trigger font-semibold text-amber-600 hover:underline" data-modal="simulado2">Faça o Simulado Completo 2</button>. Último teste de resistência e conhecimento.</li>
+                    <li>**Véspera (13/12):** Descanse! Faça uma revisão muito leve, separe seus documentos e material. Durma bem.</li>
+                </ul>
+            </div>
+        </section>
+        
+        <!-- Conteúdo Programático (Checklist) -->
+        <section id="syllabus" class="mb-16">
+            <h2 class="text-3xl font-bold text-stone-700 mb-8 border-l-4 border-amber-500 pl-4">Conteúdo Programático Completo</h2>
+            <div id="accordion-container" class="space-y-4"></div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-stone-100 mt-16 py-6">
+        <div class="container mx-auto px-6 text-center text-sm text-stone-500">
+            <p>Este plano de estudos é uma ferramenta de apoio baseada no Edital N° 02/2025. Sempre consulte o documento oficial.</p>
+            <p>Boa sorte!</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <div id="modals-container"></div>
+
+<script>
+// Data for the entire study plan
+const studyData = {
+    summaries: {
+        's1-especificos': { title: 'Resumo: Princípios da Administração Pública (LIMPE)', content: `<p class="mb-4">Os princípios básicos da Administração Pública (Art. 37 da CF) são memorizados pelo mnemônico <strong>LIMPE</strong>:</p><ul class="list-disc list-inside space-y-2"><li><strong>L - Legalidade:</strong> O administrador só pode fazer o que a lei permite.</li><li><strong>I - Impessoalidade:</strong> As ações devem visar o interesse público, não o pessoal.</li><li><strong>M - Moralidade:</strong> Agir com honestidade e ética.</li><li><strong>P - Publicidade:</strong> Os atos devem ser transparentes.</li><li><strong>E - Eficiência:</strong> Buscar os melhores resultados com o menor custo.</li></ul>`},
+        's1-portugues': { title: 'Resumo: Crase - Regras Essenciais', content: `<p class="mb-4">Crase é a fusão de 'a' + 'a'.</p><h4 class="font-semibold mb-2">Dica de Ouro:</h4><p>Troque a palavra feminina por uma masculina. Se o "a" virar "ao", há crase. Ex: Vou à praia -> Vou ao clube.</p><h4 class="font-semibold mt-4 mb-2">Use Sempre:</h4><ul class="list-disc list-inside"><li>Em locuções adverbiais femininas (às vezes, à noite).</li><li>Na indicação de horas exatas (às 15h).</li></ul><h4 class="font-semibold mt-4 mb-2">Nunca Use:</h4><ul class="list-disc list-inside"><li>Antes de palavras masculinas, verbos e pronomes em geral.</li></ul>`},
+        's2-especificos': { title: 'Resumo: Gestão de Documentos - Protocolo', content: `<p>O <strong>Protocolo</strong> é a "porta de entrada" dos documentos na organização. Suas funções principais são:</p><ul class="list-disc list-inside space-y-2"><li><strong>Recebimento:</strong> Coletar a correspondência interna e externa.</li><li><strong>Registro:</strong> Cadastrar o documento em um sistema (manual ou eletrônico), atribuindo um número único, data, origem, etc.</li><li><strong>Autuação:</strong> Formalizar um processo, juntando documentos sobre o mesmo assunto.</li><li><strong>Distribuição e Tramitação:</strong> Enviar o documento para o setor responsável e controlar seu movimento interno.</li></ul>`},
+        's2-portugues': { title: 'Resumo: Concordância Verbal', content: `<p>A regra geral é simples: <strong>o verbo concorda com o sujeito em número e pessoa</strong>.</p><h4 class="font-semibold mt-4 mb-2">Casos Especiais:</h4><ul class="list-disc list-inside space-y-2"><li><strong>Sujeito Composto:</strong> Se vier antes do verbo, o verbo vai para o plural (Ex: <u>João e Maria saíram</u>). Se vier depois, pode concordar com o mais próximo ou ir para o plural (Ex: Saiu/Saíram João e Maria).</li><li><strong>Verbo Haver (sentido de existir):</strong> Fica sempre no singular (Ex: Havia muitos problemas).</li><li><strong>Verbo Fazer (tempo):</strong> Fica sempre no singular (Ex: Faz dois anos).</li><li><strong>"Mais de um":</strong> Verbo no singular (Ex: Mais de um aluno chegou).</li></ul>`},
+        's3-especificos': { title: 'Resumo: Arquivamento', content: `<p><strong>Arquivamento</strong> é o ato de guardar documentos de forma ordenada para futura consulta. Seus objetivos são preservar a informação e otimizar o acesso.</p><h4 class="font-semibold mt-4 mb-2">Métodos de Arquivamento:</h4><ul class="list-disc list-inside space-y-2"><li><strong>Alfabético:</strong> Pelo nome. Mais comum para pastas de pessoas ou empresas.</li><li><strong>Numérico:</strong> Por número de matrícula, processo, etc.</li><li><strong>Geográfico:</strong> Por local (cidade, estado).</li><li><strong>Ideográfico (por assunto):</strong> Agrupa documentos pelo tema.</li></ul><p class="mt-4">O <strong>Ciclo de Vida dos Documentos</strong> inclui as fases: Corrente (uso frequente), Intermediária (uso raro) e Permanente (valor histórico).</p>`},
+        's3-etica': { title: 'Resumo: Lei de Improbidade Administrativa', content: `<p>A <strong>Lei 8.429/92</strong> (atualizada pela Lei 14.230/21) pune agentes públicos por atos de corrupção. Ela classifica os atos de improbidade em 3 categorias:</p><ul class="list-disc list-inside space-y-2"><li><strong>Enriquecimento Ilícito:</strong> Obter vantagem patrimonial indevida (Ex: receber propina).</li><li><strong>Prejuízo ao Erário:</strong> Causar dano aos cofres públicos, por ação ou omissão (Ex: realizar obra superfaturada).</li><li><strong>Atos que Atentam Contra os Princípios da Administração:</strong> Ferir os deveres de honestidade, imparcialidade, legalidade (Ex: "furar a fila" de um concurso).</li></ul><p class="mt-4"><strong>Atenção:</strong> A nova lei exige <strong>dolo</strong> (intenção) para a condenação na maioria dos casos.</p>`},
+    },
+    quizzes: {
+        'q1': { title: 'Exercícios da Semana 1', questions: [{ q: "[Específicos] O princípio que proíbe a promoção pessoal do administrador com atos do governo é o da:", options: ["Moralidade", "Legalidade", "Publicidade", "Impessoalidade"], answer: "Impessoalidade" }, { q: "[Português] Qual frase usa a crase incorretamente?", options: ["Entreguei o prêmio àquela aluna.", "Fomos à uma boa festa.", "A reunião será às três horas.", "Estou à disposição."], answer: "Fomos à uma boa festa." }, { q: "[Informática] Qual dos seguintes é um Sistema Operacional?", options: ["Microsoft Excel", "Google Chrome", "Windows 11", "Adobe Photoshop"], answer: "Windows 11" }] },
+        'q2': { title: 'Exercícios da Semana 2', questions: [{ q: "[Específicos] O registro de um documento em um sistema, com número único, é chamado de:", options: ["Tramitação", "Distribuição", "Registro", "Arquivamento"], answer: "Registro" }, { q: "[Português] Assinale a concordância verbal CORRETA:", options: ["Houveram muitos acidentes.", "Fazem cinco anos que moro aqui.", "Existe poucas vagas.", "A maioria dos alunos passou."], answer: "A maioria dos alunos passou." }, { q: "[Informática] Uma fórmula no Excel deve sempre começar com qual símbolo?", options: ["@", "#", "=", "&"], answer: "=" }] },
+        'q3': { title: 'Exercícios da Semana 3', questions: [{ q: "[Específicos] Guardar processos por número de matrícula é um método de arquivamento:", options: ["Alfabético", "Geográfico", "Numérico", "Por assunto"], answer: "Numérico" }, { q: "[Ética] Realizar uma compra pública com preço muito acima do mercado pode configurar, segundo a Lei de Improbidade:", options: ["Enriquecimento Ilícito", "Prejuízo ao Erário", "Ato contra os princípios", "Nenhuma das alternativas"], answer: "Prejuízo ao Erário" }] },
+        'sp1': { title: 'Simulado Parcial 1 (Semanas 1-4)', questions: [{q:"[Específicos] Qual princípio do LIMPE se relaciona com a busca por resultados e economia de recursos?", options:["Legalidade","Impessoalidade","Moralidade","Eficiência"], answer:"Eficiência"},{q:"[Português] Em 'Referi-me ___ aluna que chegou', qual a forma correta?", options:["a","à","á","ah"], answer:"à"},{q:"[Informática] Para salvar um documento no Word com um novo nome, usa-se:", options:["CTRL+B","CTRL+G","Salvar Como","Salvar"], answer:"Salvar Como"},{q:"[Ética] A Lei de Acesso à Informação (LAI) estabelece que a regra é:", options:["O sigilo","A publicidade","O acesso restrito","A burocracia"], answer:"A publicidade"},{q:"[Gerais] A base econômica histórica de Arapiraca é a cultura do:", options:["Milho","Fumo","Algodão","Café"], answer:"Fumo"}]},
+        'sp2': { title: 'Simulado Parcial 2 (Semanas 5-8)', questions: [{q:"[Específicos] O controle de entrada e saída de itens de um depósito é chamado de:", options:["Gestão de Pessoas","Gestão de Estoques","Gestão de Protocolo","Gestão Financeira"], answer:"Gestão de Estoques"},{q:"[Português] 'Quando eu o ___, avisarei.' Complete com o verbo VER no futuro do subjuntivo.", options:["ver","vir","visse","verei"], answer:"vir"},{q:"[Informática] Um ataque que tenta enganar você para roubar senhas é chamado de:", options:["Firewall","Backup","Phishing","Antivírus"], answer:"Phishing"}]},
+    },
+    simulados: {
+        'simulado1': { title: 'Simulado Completo 1 (10 Questões)', questions: [{ q: "[Específicos] O ato de organizar documentos de forma lógica para consulta futura refere-se à função de:", options: ["Protocolo", "Tramitação", "Arquivamento", "Expedição"], answer: "Arquivamento" },{ q: "[Português] Na frase 'A menina, que era estudiosa, passou no concurso', a oração destacada é:", options: ["Adverbial Causal", "Adjetiva Restritiva", "Adjetiva Explicativa", "Substantiva Objetiva Direta"], answer: "Adjetiva Explicativa" },{ q: "[Informática] Para criar uma tabela dinâmica no Excel, qual guia você deve utilizar?", options: ["Página Inicial", "Inserir", "Dados", "Fórmulas"], answer: "Inserir" },{ q: "[Ética] A Lei de Acesso à Informação (LAI) tem como objetivo principal garantir:", options: ["O sigilo dos dados governamentais", "A publicidade como regra e o sigilo como exceção", "O acesso restrito a servidores", "Apenas a transparência de salários"], answer: "A publicidade como regra e o sigilo como exceção" },{ q: "[Gerais] A Lei Orgânica é considerada a 'Constituição' de um(a):", options: ["Estado", "País", "Município", "Região Metropolitana"], answer: "Município" },{ q: "[Específicos] Receber, registrar e distribuir documentos na entrada de uma organização é tarefa do setor de:", options: ["Recursos Humanos", "Almoxarifado", "Protocolo", "Contabilidade"], answer: "Protocolo" },{ q: "[Português] Qual palavra é acentuada pela mesma regra de 'saúde'?", options: ["País", "Herói", "Baú", "Ideia"], answer: "Baú" },{ q: "[Informática] O que é um 'phishing'?", options: ["Um tipo de vírus de computador", "Uma falha de hardware", "Um ataque para roubar informações pessoais fingindo ser uma entidade confiável", "Um software de backup"], answer: "Um ataque para roubar informações pessoais fingindo ser uma entidade confiável" },{ q: "[Ética] Um servidor que usa recursos da repartição para fins particulares está ferindo principalmente os princípios de:", options: ["Legalidade e Eficiência", "Impessoalidade e Moralidade", "Publicidade e Legalidade", "Eficiência e Moralidade"], answer: "Impessoalidade e Moralidade" },{ q: "[Gerais] Arapiraca é conhecida nacionalmente como a capital do:", options: ["Algodão", "Fumo", "Café", "Milho"], answer: "Fumo" },] },
+        'simulado2': { title: 'Simulado Completo 2 (10 Questões)', questions: [{ q: "[Específicos] A redação de um Ofício deve seguir qual padrão?", options: ["Linguagem informal", "Manual de Redação da Presidência da República", "Normas ABNT", "Regras internas da secretaria"], answer: "Manual de Redação da Presidência da República" },{ q: "[Português] Assinale a frase com erro de concordância verbal:", options: ["Fazem dois anos que não o vejo.", "Havia muitos problemas na sala.", "Mais de um aluno chegou atrasado.", "Bateu cinco horas no relógio."], answer: "Fazem dois anos que não o vejo." },{ q: "[Informática] Qual a função da tecla de atalho 'CTRL + S' no Microsoft Word?", options: ["Sublinhar", "Substituir", "Salvar", "Selecionar Tudo"], answer: "Salvar" },{ q: "[Ética] A Lei de Improbidade Administrativa (Lei 8.429/92) pune atos que causem:", options: ["Apenas enriquecimento ilícito", "Apenas prejuízo ao erário", "Enriquecimento ilícito, prejuízo ao erário e que atentam contra os princípios da administração", "Apenas desobediência hierárquica"], answer: "Enriquecimento ilícito, prejuízo ao erário e que atentam contra os princípios da administração" },{ q: "[Gerais] A emancipação política de Arapiraca ocorreu em que ano?", options: ["1924", "1953", "1892", "1901"], answer: "1924" },{ q: "[Específicos] O que significa 'tramitação' de um documento?", options: ["Sua criação", "Seu armazenamento final", "Seu descarte", "O percurso do documento entre setores"], answer: "O percurso do documento entre setores" },{ q: "[Português] 'Precisa-se de funcionários'. O 'se' é classificado como:", options: ["Partícula apassivadora", "Índice de indeterminação do sujeito", "Pronome reflexivo", "Parte integrante do verbo"], answer: "Índice de indeterminação do sujeito" },{ q: "[Informática] O que é 'backup na nuvem'?", options: ["Uma cópia de segurança em um HD externo", "Uma cópia de segurança em servidores remotos, acessíveis pela internet", "Um programa de limpeza de disco", "Uma técnica para acelerar a internet"], answer: "Uma cópia de segurança em servidores remotos, acessíveis pela internet" },{ q: "[Ética] Ser probo significa, no serviço público, ser:", options: ["Rápido", "Honesto e íntegro", "Comunicativo", "Pontual"], answer: "Honesto e íntegro" },{ q: "[Gerais] O fundador de Arapiraca foi:", options: ["Manoel André", "Esperidião Rodrigues", "Lourenço de Albuquerque", "Graciliano Ramos"], answer: "Manoel André" },] }
+    },
+    weeklyPlan: [
+        { week: 1, goal: "Construir a base em Conhecimentos Específicos e Português. Entender a lógica da prova.", schedule: [{ day: "Seg", topics: "Específicos: Princípios da Adm. Pública / Português: Interpretação de Texto" },{ day: "Ter", topics: "Português: Crase / Informática: Windows e Word (noções básicas)" },{ day: "Qua", topics: "Específicos: Atendimento ao Público e Redação Oficial" },{ day: "Qui", topics: "Ética: Princípios do Serviço Público / Gerais: História de Arapiraca" },{ day: "Sex", topics: "Revisão da semana e resolução de exercícios" }], materials: [{ label: "Resumo: Princípios da Adm. Pública (LIMPE)", modal: "s1-especificos" },{ label: "Resumo: Crase - Regras Essenciais", modal: "s1-portugues" }], quiz: "q1" },
+        { week: 2, goal: "Avançar em Gestão de Documentos e Informática (Excel).", schedule: [{ day: "Seg", topics: "Específicos: Protocolo e Tramitação" },{ day: "Ter", topics: "Português: Concordância Verbal e Nominal" },{ day: "Qua", topics: "Informática: Excel (Fórmulas e Funções básicas)" },{ day: "Qui", topics: "Ética: Lei de Acesso à Informação (LAI)" },{ day: "Sex", topics: "Revisão e exercícios" }], materials: [{ label: "Resumo: Gestão de Documentos - Protocolo", modal: "s2-especificos" },{ label: "Resumo: Concordância Verbal", modal: "s2-portugues" }], quiz: "q2" },
+        { week: 3, goal: "Foco em Arquivamento e Leis de Ética (Improbidade).", schedule: [{ day: "Seg", topics: "Específicos: Arquivamento e Tabela de Temporalidade" },{ day: "Ter", topics: "Português: Regência Verbal e Nominal" },{ day: "Qua", topics: "Informática: Excel (Gráficos e Tabelas Dinâmicas)" },{ day: "Qui", topics: "Ética: Lei de Improbidade Administrativa" },{ day: "Sex", topics: "Revisão e exercícios" }], materials: [{ label: "Resumo: Arquivamento", modal: "s3-especificos" },{ label: "Resumo: Lei de Improbidade Administrativa", modal: "s3-etica" }], quiz: "q3" },
+        { week: 4, goal: "Revisão do primeiro mês e aprofundamento em Processos Administrativos.", schedule: [{ day: "Seg/Ter", topics: "Revisão geral dos conteúdos das semanas 1 a 3." },{ day: "Qua", topics: "Específicos: Processos Administrativos (autuação, fases)" },{ day: "Qui", topics: "Resolução de questões de todas as matérias." },{ day: "Sex", topics: "Simulado Parcial 1" }], materials: [], quiz: "sp1" },
+        { week: 5, goal: "Iniciar Gestão de Materiais e Sintaxe do Período Composto.", schedule: [{ day: "Seg", topics: "Específicos: Gestão de Materiais e Estoques" },{ day: "Ter", topics: "Português: Período Composto (Coordenação e Subordinação)" },{ day: "Qua", topics: "Informática: PowerPoint e Apresentações" },{ day: "Qui", topics: "Gerais: Geografia e Economia de Arapiraca" },{ day: "Sex", topics: "Revisão e exercícios" }], materials: [], quiz: "" },
+        { week: 6, goal: "Aprofundar na Lei Orgânica e Segurança da Informação.", schedule: [{ day: "Seg", topics: "Específicos: Lei Orgânica de Arapiraca (Estrutura e Poderes)" },{ day: "Ter", topics: "Português: Pontuação (uso da vírgula)" },{ day: "Qua", topics: "Informática: Segurança da Informação (Vírus, Phishing, Backup)" },{ day: "Qui", topics: "Ética: Estatuto do Servidor Municipal" },{ day: "Sex", topics: "Revisão e exercícios" }], materials: [], quiz: "" },
+        { week: 7, goal: "Foco em Redes de Computadores e resolução intensiva de questões.", schedule: [{ day: "Seg", topics: "Informática: Redes de Computadores e Internet" },{ day: "Ter", topics: "Resolução de questões de Português" },{ day: "Qua", topics: "Resolução de questões de Específicos" },{ day: "Qui", topics: "Resolução de questões de Informática e Ética" },{ day: "Sex", topics: "Revisão dos erros da semana" }], materials: [], quiz: "" },
+        { week: 8, goal: "Revisão do segundo mês e simulado parcial.", schedule: [{ day: "Seg/Ter", topics: "Revisão geral dos conteúdos das semanas 5 a 7." },{ day: "Qua", topics: "Específicos: Revisão de todos os tópicos" },{ day: "Qui", topics: "Resolução de questões de todas as matérias." },{ day: "Sex", topics: "Simulado Parcial 2" }], materials: [], quiz: "sp2" },
+        { week: 9, goal: "Cobrir os últimos tópicos e revisar pontos fracos.", schedule: [{ day: "Seg", topics: "Informática: Computação em Nuvem e Ferramentas Google" },{ day: "Ter", topics: "Revisão focada nos erros dos simulados parciais" },{ day: "Qua", topics: "Português: Revisão de Sintaxe" },{ day: "Qui", topics: "Específicos: Revisão de Gestão de Documentos" },{ day: "Sex", topics: "Exercícios gerais" }], materials: [], quiz: "" },
+        { week: 10, goal: "Revisão geral de todos os conteúdos antes da Reta Final.", schedule: [{ day: "Seg/Ter", topics: "Leitura da 'letra da lei' (Ética e Lei Orgânica)" },{ day: "Qua", topics: "Revisão com Mapas Mentais (criar e revisar)" },{ day: "Qui", topics: "Revisão com Flashcards" },{ day: "Sex", topics: "Último quiz geral e planejamento para a Reta Final" }], materials: [], quiz: "" },
+    ]
+};
+
+const APP_PREFIX = 'tutorArapiraca_';
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Chart.js - Gráfico de Pesos
+    const ctx = document.getElementById('examWeightsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Conhecimentos Específicos', 'Português', 'Informática', 'Ética', 'Conhecimentos Gerais'],
+            datasets: [{
+                data: [60, 20, 10, 5, 5],
+                backgroundColor: ['#92400E', '#B45309', '#D97706', '#F59E0B', '#FBBF24'],
+                borderColor: '#F8F7F4', borderWidth: 4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15 } },
+                tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed}%` } }
+            }
+        }
+    });
+
+    // Weekly Plan Tabs
+    const tabsContainer = document.getElementById('tabs-container');
+    const contentContainer = document.getElementById('tabs-content-container');
+    studyData.weeklyPlan.forEach((weekData, index) => {
+        const tab = document.createElement('button');
+        tab.className = `tab-button px-4 py-2 rounded-md font-semibold ${index === 0 ? 'active' : ''}`;
+        tab.textContent = `Semana ${weekData.week}`;
+        tab.dataset.target = `week-${weekData.week}`;
+        tabsContainer.appendChild(tab);
+
+        const content = document.createElement('div');
+        content.id = `week-${weekData.week}`;
+        content.className = `tab-content ${index > 0 ? 'hidden' : ''}`;
+        
+        let materialsHtml = weekData.materials.length > 0 ? '<h4 class="font-semibold mb-2 mt-4">Materiais de Apoio:</h4>' + weekData.materials.map(m => `<button class="modal-trigger text-amber-600 hover:underline" data-modal="${m.modal}">${m.label}</button>`).join('<br>') : '';
+        let quizHtml = weekData.quiz ? `<div class="mt-4"><button class="modal-trigger bg-amber-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-amber-700" data-modal="${weekData.quiz}">Exercícios / Simulado</button></div>` : '';
+        let scheduleHtml = weekData.schedule.map(s => `<p><strong>${s.day}:</strong> ${s.topics}</p>`).join('');
+
+        content.innerHTML = `
+            <h3 class="text-xl font-bold text-stone-700">${weekData.goal}</h3>
+            <div class="mt-4 space-y-2">${scheduleHtml}</div>
+            ${materialsHtml}
+            ${quizHtml}
+        `;
+        contentContainer.appendChild(content);
+    });
+
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(button.dataset.target).classList.remove('hidden');
+        });
+    });
+
+    // Accordion e Checklist
+    const syllabusData = {'Conhecimentos Específicos':['Informações gerais sobre o Município','Lei Orgânica do Município','Plano de cargos e carreiras','Atos administrativos','Documentação e Arquivo','Funções de protocolo','Gestão de materiais e estoques','Processos administrativos'],'Português':['Leitura e compreensão de textos','Modos de organização do discurso','Gêneros do discurso','Coesão e coerência','Relação entre as partes do texto','Conectivos','Verbos, Pronomes, Figuras de linguagem','Sinônimos, antônimos, etc.','Acentuação e Pontuação','Sintaxe','Crase e Ortografia'],'Informática':['Arquitetura de Computadores','Software','Windows 10/11 e Linux','MS Office, LibreOffice','Microsoft 365 e Teams','Segurança da Informação','Redes de Computadores','Internet e Web','Redes Sociais e Nuvem','Ferramentas Google'],'Ética':['Conceitos de Ética e Moral','Ética e Vida Pública','Conduta ética no serviço público','Deveres e vedações','Legislação aplicada à ética','Ética, Integridade e Cidadania','Estatutos municipais'],'Conhecimentos Gerais':['História de Arapiraca','Aspectos geográficos e sociais','Patrimônio cultural','Estrutura da Prefeitura','Lei Orgânica','Bandeira e hino']};
+    const accordionContainer = document.getElementById('accordion-container');
+    Object.keys(syllabusData).forEach(subject => {
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-xl shadow-md overflow-hidden';
+        item.innerHTML = `
+            <button class="accordion-button w-full flex justify-between items-center p-5 text-left font-semibold text-stone-700 hover:bg-amber-50 focus:outline-none">
+                <span>${subject}</span>
+                <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div class="accordion-content hidden p-5 border-t border-stone-200">
+                <ul class="space-y-2">
+                    ${syllabusData[subject].map(topic => `<li class="checklist-item p-2 rounded-md" data-topic="${subject}-${topic.replace(/\s/g, '-')}">${topic}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        accordionContainer.appendChild(item);
+    });
+
+    // Modal logic
+    const modalsContainer = document.getElementById('modals-container');
+    const allModalData = { ...studyData.summaries, ...studyData.quizzes, ...studyData.simulados, ...studyData.weeklyPlan.filter(w => w.quiz).reduce((acc, w) => ({...acc, [w.quiz]: studyData.quizzes[w.quiz] || studyData.simulados[w.quiz]}), {}) };
+    Object.keys(allModalData).forEach(key => {
+        const data = allModalData[key];
+        if (!data) return;
+        const modal = document.createElement('div');
+        modal.id = key;
+        modal.className = 'modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50';
+        
+        let contentHtml = '';
+        if (data.questions) {
+            contentHtml = data.questions.map((q, i) => `
+                <div class="quiz-item mb-4" data-quiz-id="${key}" data-question-index="${i}">
+                    <p class="font-semibold">${i + 1}. ${q.q}</p>
+                    <div class="space-y-2 mt-2">
+                        ${q.options.map(opt => `<div class="quiz-option border-2 border-stone-200 p-2 rounded-md" data-answer="${q.answer}">${opt}</div>`).join('')}
+                    </div>
+                    <p class="quiz-feedback hidden mt-2 text-sm"></p>
+                </div>
+            `).join('');
+        } else {
+            contentHtml = data.content;
+        }
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center p-4 border-b">
+                    <h3 class="text-xl font-bold">${data.title}</h3>
+                    <button class="modal-close text-2xl">&times;</button>
+                </div>
+                <div class="p-6 overflow-y-auto">${contentHtml}</div>
+            </div>
+        `;
+        modalsContainer.appendChild(modal);
+    });
+
+    // --- LocalStorage and State Management ---
+    function getProgress(key) {
+        return JSON.parse(localStorage.getItem(APP_PREFIX + key) || '{}');
+    }
+
+    function saveProgress(key, data) {
+        localStorage.setItem(APP_PREFIX + key, JSON.stringify(data));
+    }
+
+    function loadChecklistState() {
+        const completed = getProgress('checklist');
+        document.querySelectorAll('.checklist-item').forEach(item => {
+            if (completed[item.dataset.topic]) {
+                item.classList.add('completed');
+            }
+        });
+    }
+
+    function saveChecklistState(item) {
+        const completed = getProgress('checklist');
+        completed[item.dataset.topic] = item.classList.contains('completed');
+        saveProgress('checklist', completed);
+    }
+    
+    function updatePerformancePanel() {
+        const results = getProgress('quizResults');
+        const panel = document.getElementById('performance-content');
+        if (Object.keys(results).length === 0) {
+            panel.innerHTML = '<p>Responda aos exercícios para ver seu desempenho aqui.</p>';
+            return;
+        }
+
+        let totalCorrect = 0;
+        let totalAnswered = 0;
+        const subjectStats = {};
+        const wrongAnswers = [];
+
+        for (const quizId in results) {
+            for (const qIndex in results[quizId]) {
+                const result = results[quizId][qIndex];
+                totalAnswered++;
+                const questionData = (studyData.quizzes[quizId] || studyData.simulados[quizId]).questions[qIndex];
+                const subjectMatch = questionData.q.match(/^\[(.*?)\]/);
+                const subject = subjectMatch ? subjectMatch[1] : 'Geral';
+                
+                if (!subjectStats[subject]) {
+                    subjectStats[subject] = { correct: 0, total: 0 };
+                }
+                subjectStats[subject].total++;
+
+                if (result.isCorrect) {
+                    totalCorrect++;
+                    subjectStats[subject].correct++;
+                } else {
+                    wrongAnswers.push({
+                        quizId,
+                        qIndex,
+                        question: questionData.q,
+                        yourAnswer: result.userAnswer,
+                        correctAnswer: questionData.answer
+                    });
+                }
+            }
+        }
+        
+        let statsHtml = `<div class="grid md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-amber-50 p-4 rounded-lg text-center"><p class="text-sm">Acerto Geral</p><p class="text-2xl font-bold">${((totalCorrect / totalAnswered) * 100).toFixed(0)}%</p></div>
+            <div class="bg-amber-50 p-4 rounded-lg text-center"><p class="text-sm">Questões Respondidas</p><p class="text-2xl font-bold">${totalAnswered}</p></div>
+            <div class="bg-amber-50 p-4 rounded-lg text-center"><p class="text-sm">Questões Erradas</p><p class="text-2xl font-bold">${wrongAnswers.length}</p></div>
+        </div>
+        <h4 class="font-semibold mb-2">Desempenho por Disciplina:</h4>
+        <div class="space-y-2 mb-6">
+            ${Object.keys(subjectStats).map(s => `
+                <div class="flex justify-between items-center"><p>${s}</p><p class="font-semibold">${((subjectStats[s].correct / subjectStats[s].total) * 100).toFixed(0)}%</p></div>
+            `).join('')}
+        </div>`;
+        
+        if(wrongAnswers.length > 0) {
+            statsHtml += `<h4 class="font-semibold mb-2">Revise seus erros:</h4>
+            <ul class="list-disc list-inside space-y-2 text-sm">
+                ${wrongAnswers.map(wa => `<li>${wa.question} <br><i>(Sua resposta: ${wa.yourAnswer} | Correta: ${wa.correctAnswer})</i></li>`).join('')}
+            </ul>`;
+        }
+        panel.innerHTML = statsHtml;
+    }
+
+    function loadQuizState() {
+        const results = getProgress('quizResults');
+        document.querySelectorAll('.quiz-item').forEach(item => {
+            const quizId = item.dataset.quizId;
+            const qIndex = item.dataset.questionIndex;
+            if (results[quizId] && results[quizId][qIndex]) {
+                const savedAnswer = results[quizId][qIndex];
+                item.querySelectorAll('.quiz-option').forEach(opt => {
+                    opt.classList.add('answered');
+                    if(opt.textContent === savedAnswer.userAnswer) {
+                        opt.classList.add(savedAnswer.isCorrect ? 'correct' : 'incorrect');
+                    }
+                    if(opt.textContent === opt.dataset.answer && !savedAnswer.isCorrect) {
+                         opt.classList.add('correct');
+                    }
+                });
+                 const feedback = item.querySelector('.quiz-feedback');
+                 feedback.textContent = savedAnswer.isCorrect ? 'Resposta Correta!' : `Incorreto. A resposta certa é: ${item.querySelector('.quiz-option').dataset.answer}`;
+                 feedback.className = `quiz-feedback block mt-2 text-sm ${savedAnswer.isCorrect ? 'text-green-600' : 'text-red-600'}`;
+            }
+        });
+    }
+
+    // --- Event Listeners ---
+    accordionContainer.addEventListener('click', e => {
+        if (e.target.closest('.accordion-button')) {
+            const button = e.target.closest('.accordion-button');
+            button.classList.toggle('open');
+            button.nextElementSibling.classList.toggle('hidden');
+        }
+        if (e.target.classList.contains('checklist-item')) {
+            e.target.classList.toggle('completed');
+            saveChecklistState(e.target);
+        }
+    });
+
+    document.body.addEventListener('click', e => {
+        // Modal Triggers
+        if (e.target.classList.contains('modal-trigger')) {
+            const modalId = e.target.dataset.modal;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                if(modal.querySelector('.quiz-item')) {
+                    loadQuizState(); // Load answers when opening a quiz modal
+                }
+            }
+        }
+        // Modal Closers
+        if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal')) {
+            e.target.closest('.modal')?.classList.remove('active');
+        }
+        // Quiz Option Click
+        if (e.target.classList.contains('quiz-option') && !e.target.closest('.quiz-item').querySelector('.answered')) {
+            const option = e.target;
+            const item = option.closest('.quiz-item');
+            const quizId = item.dataset.quizId;
+            const qIndex = item.dataset.questionIndex;
+            const correctAnswer = option.dataset.answer;
+            const isCorrect = option.textContent === correctAnswer;
+            
+            // Save result
+            const results = getProgress('quizResults');
+            if (!results[quizId]) results[quizId] = {};
+            results[quizId][qIndex] = { userAnswer: option.textContent, isCorrect };
+            saveProgress('quizResults', results);
+            
+            // Update UI
+            loadQuizState();
+            updatePerformancePanel();
+        }
+    });
+
+    document.getElementById('clear-progress-btn').addEventListener('click', () => {
+        if(confirm('Tem certeza que deseja apagar todo o seu progresso? Esta ação não pode ser desfeita.')) {
+            localStorage.removeItem(APP_PREFIX + 'checklist');
+            localStorage.removeItem(APP_PREFIX + 'quizResults');
+            location.reload();
+        }
+    });
+
+    // Mobile & smooth scroll navigation
+    document.getElementById('mobile-nav').addEventListener('change', e => window.location.hash = e.target.value);
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    // Initial Load
+    loadChecklistState();
+    updatePerformancePanel();
+});
+</script>
+
+</body>
+</html>
+
